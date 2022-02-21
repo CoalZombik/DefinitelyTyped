@@ -284,7 +284,7 @@ declare namespace SshPK {
 
     interface FingerprintParseOptions {
         enAlgs?: string[];
-        algotirhms?: string[];
+        algorithms?: string[];
         type?: FingerprintType;
         hashType?: FingerprintHashType;
     }

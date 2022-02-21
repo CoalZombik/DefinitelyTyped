@@ -11,7 +11,7 @@ import { BerWriter, BerReader } from 'asn1';
 import crypto = require('crypto');
 import { Writable } from 'stream';
 
-declare class SshPK {}
+declare class SshPK { }
 
 declare namespace SshPK {
     // == algs.js == //
@@ -201,22 +201,14 @@ declare namespace SshPK {
     class Verifier extends Writable {
         constructor(key: Key, hashAlgo: 'sha512');
 
-        update(chunk: string | Buffer): void;
-
+        update(chunk: crypto.BinaryLike): void | this;
         verify(signature: Signature): boolean;
     }
 
     class Signer extends Writable {
         private constructor();
 
-        update(data: crypto.BinaryLike): this;
-        update(data: string, input_encoding: crypto.Encoding): this;
-
-        sign(private_key: crypto.KeyLike | crypto.SignKeyObjectInput | crypto.SignPrivateKeyInput): Buffer;
-        sign(
-            private_key: crypto.KeyLike | crypto.SignKeyObjectInput | crypto.SignPrivateKeyInput,
-            output_format: crypto.BinaryToTextEncoding,
-        ): string;
+        update(data: crypto.BinaryLike): void | this;
         sign(): Signature;
     }
 
@@ -637,14 +629,67 @@ declare namespace SshPK {
         filename?: string;
     }
 
-    /** extends crypto.Verify but override 'verify' function */
-    interface Verify {
-        update(data: crypto.BinaryLike): Verify;
-        update(data: string, input_encoding: crypto.Encoding): Verify;
-
-        verify(signature: Signature): boolean;
-        verify(signature: string | Buffer, fmt?: crypto.BinaryToTextEncoding): boolean;
-    }
+    /** Copied from crypto.getHashes() function */
+    type CryptoHashAlgorithm =
+        | 'RSA-MD4'
+        | 'RSA-MD5'
+        | 'RSA-MDC2'
+        | 'RSA-RIPEMD160'
+        | 'RSA-SHA1'
+        | 'RSA-SHA1-2'
+        | 'RSA-SHA224'
+        | 'RSA-SHA256'
+        | 'RSA-SHA3-224'
+        | 'RSA-SHA3-256'
+        | 'RSA-SHA3-384'
+        | 'RSA-SHA3-512'
+        | 'RSA-SHA384'
+        | 'RSA-SHA512'
+        | 'RSA-SHA512/224'
+        | 'RSA-SHA512/256'
+        | 'RSA-SM3'
+        | 'blake2b512'
+        | 'blake2s256'
+        | 'id-rsassa-pkcs1-v1_5-with-sha3-224'
+        | 'id-rsassa-pkcs1-v1_5-with-sha3-256'
+        | 'id-rsassa-pkcs1-v1_5-with-sha3-384'
+        | 'id-rsassa-pkcs1-v1_5-with-sha3-512'
+        | 'md4'
+        | 'md4WithRSAEncryption'
+        | 'md5'
+        | 'md5-sha1'
+        | 'md5WithRSAEncryption'
+        | 'mdc2'
+        | 'mdc2WithRSA'
+        | 'ripemd'
+        | 'ripemd160'
+        | 'ripemd160WithRSA'
+        | 'rmd160'
+        | 'sha1'
+        | 'sha1WithRSAEncryption'
+        | 'sha224'
+        | 'sha224WithRSAEncryption'
+        | 'sha256'
+        | 'sha256WithRSAEncryption'
+        | 'sha3-224'
+        | 'sha3-256'
+        | 'sha3-384'
+        | 'sha3-512'
+        | 'sha384'
+        | 'sha384WithRSAEncryption'
+        | 'sha512'
+        | 'sha512-224'
+        | 'sha512-224WithRSAEncryption'
+        | 'sha512-256'
+        | 'sha512-256WithRSAEncryption'
+        | 'sha512WithRSAEncryption'
+        | 'shake128'
+        | 'shake256'
+        | 'sm3'
+        | 'sm3WithRSAEncryption'
+        | 'ssl3-md5'
+        | 'ssl3-sha1'
+        | 'whirlpool';
 
     class Key {
         type: AlgorithmTypeWithCurve;
@@ -663,7 +708,7 @@ declare namespace SshPK {
         hash(algo: AlgorithmHashType, type?: FingerprintHashType): Buffer;
         fingerprint(algo?: AlgorithmHashType, type?: FingerprintHashType): Fingerprint;
         defaultHashAlgorithm(): ShaHashType;
-        createVerify(algo?: AlgorithmHashType): Verify;
+        createVerify(algo?: CryptoHashAlgorithm): Verifier;
         createDiffieHellman(): DiffieHellman;
         createDH(): DiffieHellman;
 
@@ -708,8 +753,8 @@ declare namespace SshPK {
         defaultHashAlgorithm(): ShaHashType;
         toPublic(): Key;
         derive(newType: 'ed25519' | 'curve25519'): PrivateKey;
-        createVerify(algo?: AlgorithmHashType): Verify;
-        createSign(hashAlgo: AlgorithmType): Signer;
+        createVerify(algo?: CryptoHashAlgorithm): Verifier;
+        createSign(hashAlgo: CryptoHashAlgorithm): Signer;
         createDiffieHellman(): DiffieHellman;
         createDH(): DiffieHellman;
 
@@ -750,14 +795,14 @@ declare namespace SshPK {
 
     interface SignatureOptions {
         type: AlgorithmType;
-        hashAlgo?: AlgorithmHashType;
+        hashAlgo?: ShaHashType;
         curve?: CurveType;
         parts: SignaturePart[];
     }
 
     class Signature {
         type: AlgorithmType;
-        hashAlgorithm?: AlgorithmHashType;
+        hashAlgorithm?: ShaHashType;
         curve?: CurveType;
         parts: SignaturePart[];
         part: { [key in SignaturePartType]: SignaturePart };
